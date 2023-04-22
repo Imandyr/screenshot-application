@@ -12,7 +12,7 @@ version pre-compiled with pyinstaller: [google drive link](https://drive.google.
   Python >= 3.8
 
 
-  Python packages:
+  Python side packages:
   
     system_hotkey >= 1.0.3
     screeninfo >= 0.8.1
