@@ -1,6 +1,8 @@
 # screenshot-application
 Simple application for screenshot creation with GUI.
 
+Use settings.json for changing of settings and main.py/main.pyw to run application.
+
 
 ## Requirements:
 
