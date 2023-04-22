@@ -1,5 +1,6 @@
 # screenshot-application
 Simple application for screenshot creation with GUI.
+Built using Python and Tkinter package.
 
 Use settings.json for changing of settings and main.py/main.pyw to run application.
 
