@@ -3,6 +3,8 @@ Simple application for screenshot creation with GUI.
 
 Use settings.json for changing of settings and main.py/main.pyw to run application.
 
+version pre-compiled with pyinstaller: [google drive link](https://drive.google.com/drive/folders/1nunUMf05VlBdpDKietf5ET_Ts7On6Ejd?usp=sharing)
+
 
 ## Requirements:
 
