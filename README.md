@@ -8,7 +8,9 @@ Use settings.json for changing of settings and main.py/main.pyw to run applicati
 
   Python >= 3.8
 
+
   Python packages:
+  
     system_hotkey >= 1.0.3 ;
     screeninfo >= 0.8.1 ;
     mss >= 9.0.1 ;
