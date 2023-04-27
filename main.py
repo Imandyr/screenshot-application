@@ -2,7 +2,6 @@
 
 
 # global imports
-import tkinter as tk
 
 # local imports
 from src.GUI import app

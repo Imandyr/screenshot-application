@@ -3,18 +3,16 @@
 
 # global imports
 from abc import ABC, abstractmethod
-import tkinter as tk
-import tkinter.ttk as ttk
-from pathlib import Path
-import os
-import json
 from typing import Any, List
 from system_hotkey import SystemHotkey
-
+import tkinter as tk
+# import tkinter.ttk as ttk
 
 # local imports
 from .widgets import WidgetScrollbar
 from .screenshot_widgets import FullScreenshotWidget, CroppedScreenshotWidget
+from ..backend.settings import Settings, ErrorWindow
+from ..errors.errors import InvalidFilePathError, ValidationError
 
 
 def add_hotkey(hk: SystemHotkey, key: List[str], func: Any, *args, **kwargs) -> None:
@@ -48,27 +46,17 @@ class Application(ABC):
         main_window: Application main window object inherited from TK.
 
     methods:
-        write_settings_file: Method for writing values from settings dict to settings file.
-        load_settings_file: Method for loading values from settings file to settings dict.
         start_main_window: Method for starting a main window of application.
 
     """
 
     settings_file_path: str
-    settings: dict
+    settings: Settings
     main_window: tk.Tk
 
     @abstractmethod
     def __init__(self, *args, **kwargs) -> None:
         """ Initialization of class object """
-
-    @abstractmethod
-    def write_settings_file(self, *args, **kwargs) -> None:
-        """ Write settings dict to file """
-
-    @abstractmethod
-    def load_settings_file(self, *args, **kwargs) -> None:
-        """ Load settings dict from file """
 
     @abstractmethod
     def start_main_window(self, *args, **kwargs) -> None:
@@ -98,62 +86,20 @@ class ScreenshotApplication(Application):
         """
         super().__init__(*args, **kwargs)
 
-        # create settings dict
-        self.settings = {}
         # add settings file path
         self.settings_file_path = settings_file_path
 
-        # check if file format is .json
-        if Path(self.settings_file_path).suffix == '.json':
-            try:
-                # load or create settings file depending on it's existence
-                if os.path.exists(settings_file_path):
-                    self.load_settings_file()
-                else:
-                    self.write_settings_file()
-            except Exception:
-                raise ValueError("Settings file is invalid and cannot be loaded correctly.")
-        else:
-            raise ValueError("Settings file must be in .json format.")
+        # try to load settings from file
+        try:
+            # create settings object
+            self.settings = Settings.from_json(settings_file_path)
+            # create main_window object
+            self.main_window = MainWindow(self.settings)
 
-        # create main_window object
-        self.main_window = MainWindow(self)
-
-    def write_settings_file(self, *args, **kwargs) -> None:
-        """
-        Method for writing settings dict to settings json file.
-
-        :param args: args
-        :param kwargs: kwargs
-        :return: None
-        """
-        super().write_settings_file(*args, **kwargs)
-
-        # open file
-        with open(file=self.settings_file_path, encoding="utf-8", mode="w") as settings_file:
-            # try to write settings dict to file
-            try:
-                json.dump(self.settings, settings_file)
-            except Exception:
-                raise Exception("Exception occurred during settings file write")
-
-    def load_settings_file(self, *args, **kwargs) -> None:
-        """
-        Method for loading settings from json settings file to settings dict
-
-        :param args: args
-        :param kwargs: kwargs
-        :return: None
-        """
-        super().load_settings_file(*args, **kwargs)
-
-        # open file
-        with open(file=self.settings_file_path, encoding="utf-8", mode="r") as settings_file:
-            # try to load settings dict from file
-            try:
-                self.settings = json.load(settings_file)
-            except Exception:
-                raise Exception("Exception occurred during settings file read")
+        # if settings loading fails on validation, open window with error message instead and then raise exception
+        except ValidationError as error:
+            ErrorWindow("Screenshot Application Error", str(error))
+            raise
 
     def start_main_window(self, *args, **kwargs) -> None:
         """
@@ -175,13 +121,13 @@ class MainWindow(tk.Tk):
 
     """
 
-    def __init__(self, application: Application, *args, **kwargs) -> None:
+    def __init__(self, settings: Settings, *args, **kwargs) -> None:
         """
         A main window of application where all objects from the main window be stored.
 
         When initialized, setup window parameters and create frame for MainPage object.
 
-        :param application: Main application object with settings.
+        :param settings: Object with settings of application.
         """
         super().__init__(*args, **kwargs)
 
@@ -189,7 +135,7 @@ class MainWindow(tk.Tk):
         try:
             self.iconphoto(True, tk.PhotoImage(file="./src/assets/icon.png"))
         except Exception:
-            raise Exception("'icon.png' file should be in the './src/assets' directory.")
+            raise InvalidFilePathError("'icon.png' file should be in the './src/assets' directory.")
 
         # add title to the window
         self.wm_title("Screenshot Application")
@@ -206,7 +152,7 @@ class MainWindow(tk.Tk):
         self.container.grid_columnconfigure(0, weight=1)
 
         # create MainPage frame object with all widgets and add it to container frame
-        self.main_page = MainPage(self.container, self, application)
+        self.main_page = MainPage(self.container, self, settings)
         self.main_page.grid(row=0, column=0, sticky="nsew")
 
 
@@ -216,7 +162,7 @@ class MainPage(tk.Frame):
 
     """
 
-    def __init__(self, parent: tk.Frame, main_window: tk.Tk, application: Application, *args, **kwargs) -> None:
+    def __init__(self, parent: tk.Frame, main_window: tk.Tk, settings: Settings, *args, **kwargs) -> None:
         """
         A class containing all widgets from the main window.
 
@@ -224,7 +170,7 @@ class MainPage(tk.Frame):
 
         :param parent: Parent widget for this frame.
         :param main_window: Main window object of application.
-        :param application: Instance of main application object.
+        :param settings: Instance of settings object.
         :param args: args
         :param kwargs: kwargs
         """
@@ -239,18 +185,18 @@ class MainPage(tk.Frame):
         self.settings_button = tk.Button(self, text="settings", command=self.open_settings_window)
         self.settings_button.pack(side="bottom", fill="both", expand=True)
         # create label in what been stored path to settings file
-        self.settings_label = tk.Label(self, text=f"settings file: '{application.settings_file_path}'")
+        self.settings_label = tk.Label(self, text=f"settings file: '{settings.settings_file_path}'")
         self.settings_label_pack = False
 
         # # create all ScreenshotWidget objects, based on frame contained inside screenshot_scrollbar
 
         # add widget of full screenshot creation
-        self.full_screenshot = FullScreenshotWidget(self.screenshot_scrollbar.frame, application.settings)
+        self.full_screenshot = FullScreenshotWidget(self.screenshot_scrollbar.frame, settings)
         self.full_screenshot.pack(side="top", anchor="nw")
 
         # add widget for cropped screenshot creation
         self.cropped_screenshot = CroppedScreenshotWidget(self.screenshot_scrollbar.frame, main_window,
-                                                          application.settings)
+                                                          settings)
         self.cropped_screenshot.pack(side="top", anchor="nw")
 
         # # add hotkeys to all .create_screenshot() methods from all ScreenshotWidgets
@@ -259,10 +205,10 @@ class MainPage(tk.Frame):
         hk = SystemHotkey()
 
         # add hotkey to full_screenshot
-        add_hotkey(hk, application.settings["full_screenshot_hotkey"],
+        add_hotkey(hk, settings["full_screenshot_hotkey"],
                    lambda event: self.full_screenshot.create_screenshot())
         # add hotkey to cropped_screenshot
-        add_hotkey(hk, application.settings["cropped_screenshot_hotkey"],
+        add_hotkey(hk, settings["cropped_screenshot_hotkey"],
                    lambda event: self.cropped_screenshot.create_screenshot())
 
     def open_settings_window(self, *args, **kwargs) -> None:

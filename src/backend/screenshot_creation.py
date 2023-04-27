@@ -4,7 +4,7 @@ Classes and functions for screenshot creation.
 
 
 # global imports
-from typing import Tuple, List, Protocol, Any
+from typing import Tuple, Any
 from abc import ABC, abstractmethod
 import screeninfo
 import mss
@@ -16,7 +16,7 @@ import re
 
 
 # local imports
-from ..errors.backend_errors import InvalidFilePathError, InvalidFileFormat, CroppingError
+from ..errors.errors import InvalidFilePathError, InvalidFileFormat, CroppingError
 
 
 class Screenshot(ABC):

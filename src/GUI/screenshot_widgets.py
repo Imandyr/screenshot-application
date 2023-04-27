@@ -1,19 +1,21 @@
 """ All screenshot creation related widgets """
-import re
+
 # global imports
-import tkinter as tk
-import tkinter.ttk as ttk
-from typing import Any, Protocol, Tuple
-from abc import ABC, abstractmethod
+from typing import Tuple
+from abc import abstractmethod
 from PIL import Image, ImageTk
 import numpy as np
+import tkinter as tk
+# import tkinter.ttk as ttk
 import os
-# import pygame mixer and hide support prompt
+import re
+# import  mixer and hide pygame support prompt
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 from pygame import mixer
 
 # local imports
 from ..backend import screenshot_creation
+from ..backend.settings import Settings
 
 
 class ScreenshotWidget(tk.Frame):
@@ -22,7 +24,7 @@ class ScreenshotWidget(tk.Frame):
     Used for creation of screenshot widget for communication between backed Screenshot object and GUI.
 
     attributes:
-        settings: Dict with all application settings.
+        settings: Dictionary with all application settings.
         backend: Object of Screenshot class using for making screenshots.
 
     methods:
@@ -30,7 +32,7 @@ class ScreenshotWidget(tk.Frame):
 
     """
 
-    settings: dict
+    settings: Settings
     backend: screenshot_creation.Screenshot
 
     @abstractmethod
@@ -56,7 +58,7 @@ class FullScreenshotWidget(ScreenshotWidget):
 
     """
 
-    def __init__(self, parent: tk.Frame, settings: dict, *args, **kwargs) -> None:
+    def __init__(self, parent: tk.Frame, settings: Settings, *args, **kwargs) -> None:
         """
         Widget for full monitor screenshot creation.
 
@@ -64,7 +66,7 @@ class FullScreenshotWidget(ScreenshotWidget):
         screenshot creation.
 
         :param parent: Parent widget for this frame.
-        :param settings: Dict with all application settings.
+        :param settings: Dictionary with all application settings.
         :param args: args
         :param kwargs: kwargs
         """
@@ -142,7 +144,7 @@ class CroppedScreenshotWidget(ScreenshotWidget):
 
     """
 
-    def __init__(self, parent: tk.Frame, main_window: tk.Tk, settings: dict, *args, **kwargs) -> None:
+    def __init__(self, parent: tk.Frame, main_window: tk.Tk, settings: Settings, *args, **kwargs) -> None:
         """
         Widget for creation of cropped screenshot.
 
@@ -151,7 +153,7 @@ class CroppedScreenshotWidget(ScreenshotWidget):
 
         :param parent: Parent widget for this frame.
         :param main_window: Main window object of application.
-        :param settings: Dict with all application settings.
+        :param settings: Dictionary with all application settings.
         :param args: args
         :param kwargs: kwargs
         """

@@ -2,9 +2,9 @@
 
 
 # global imports
-import tkinter as tk
-import tkinter.ttk as ttk
 from typing import Any
+import tkinter as tk
+# import tkinter.ttk as ttk
 
 # local imports
 
