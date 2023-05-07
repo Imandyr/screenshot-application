@@ -7,6 +7,7 @@ Classes and functions for screenshot creation.
 from typing import Tuple, Any
 from abc import ABC, abstractmethod
 import screeninfo
+import os
 import mss
 from PIL import Image
 import imageio
@@ -24,9 +25,11 @@ class Screenshot(ABC):
     Base protocol for screenshot classes.
 
     attributes:
-        image: Variable with screenshot image object.
         save_dir: Path to directory where screenshots images will be saved.
         file_format: Format of file in what screenshots image will be saved.
+
+    properties:
+        image: property with screenshot image object.
 
     methods:
         take_screenshot: Method for taking new screenshot image.
@@ -34,30 +37,38 @@ class Screenshot(ABC):
         save_screenshot: Method for writing screenshot image into file.
 
     """
-
-    image: Any
     save_dir: str
     file_format: str
 
-    @abstractmethod
     def __init__(self, *args, **kwargs):
-        """Placeholder for __init__ method"""
+        """Placeholder for __init__ method."""
+        self._image = None
+
+    @property
+    def image(self) -> Any:
+        """Screenshot image."""
+        return self._image
+
+    @image.setter
+    def image(self, img: Any) -> None:
+        """Image setter."""
+        self._image = img
 
     @abstractmethod
     def __repr__(self, *args, **kwargs):
-        """Placeholder for __repr__ method"""
+        """Placeholder for __repr__ method."""
 
     @abstractmethod
     def take_screenshot(self, *args, **kwargs):
-        """Placeholder for take_screenshot method"""
+        """Placeholder for take_screenshot method."""
 
     @abstractmethod
     def edit_screenshot(self, *args, **kwargs):
-        """Placeholder for edit_screenshot method"""
+        """Placeholder for edit_screenshot method."""
 
     @abstractmethod
     def save_screenshot(self, *args, **kwargs):
-        """Placeholder for save_screenshot method"""
+        """Placeholder for save_screenshot method."""
 
 
 class MonitorScreenshot(Screenshot):
@@ -74,7 +85,6 @@ class MonitorScreenshot(Screenshot):
         """
         super().__init__(*args, **kwargs)
 
-        self.image = None
         self.save_dir = save_dir
         self.file_format = file_format
 
@@ -123,10 +133,22 @@ class MonitorScreenshot(Screenshot):
 
         # try to write screenshot image in file
         try:
-            # create path and name for new image file
-            file_path = f"{self.save_dir}/{re.sub('[:. ]', '-', str(datetime.now()))}.{self.file_format}"
-            # write to file
-            imageio.imwrite(uri=file_path, im=np.asarray(self.image).astype("uint8"))
+            # rename file if another file already have this name
+            conflict, count, c_str = True, 1, ""
+            while conflict:
+
+                # create path and name for new image file
+                file_path = f"{self.save_dir}/{re.sub('[:. ]', '-', str(datetime.now()))}{c_str}.{self.file_format}"
+
+                # write image to file if its name is no exist already
+                if not os.path.exists(file_path):
+                    conflict = False
+                    imageio.imwrite(uri=file_path, im=np.asarray(self.image).astype("uint8"))
+
+                # add prefix with number to file name if file with this name is already exist
+                else:
+                    count += 1
+                    c_str = "_" + str(count)
 
         # if error occurred with file format
         except ValueError:

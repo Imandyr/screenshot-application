@@ -2,41 +2,16 @@
 
 
 # global imports
-from pathlib import Path
 import os
 import json
+# import time
+# import collections
 from enum import Enum
-import tkinter as tk
-from tkinter import messagebox
-# import tkinter.ttk as ttk
+from pathlib import Path
+from system_hotkey import SystemHotkey, InvalidKeyError, SystemRegisterError  # , util
 
 # local imports
 from ..errors.errors import InvalidFileFormat, ReadFileError, ValidationError
-
-
-class ErrorWindow(tk.Tk):
-    """
-    Class of error window what shows given error message and then destroy itself.
-    """
-    def __init__(self, header: str, message: str, *args, **kwargs) -> None:
-        """
-        Class of error window what shows given error message and then destroy itself.
-
-        When initialized, creates invisible tkinter window, show error message and then delete itself.
-
-        :param header: header of error message.
-        :param message: message of error.
-        :param args: Args of Tk.
-        :param kwargs: Kwargs of Tk.
-        """
-        super().__init__(*args, **kwargs)
-
-        # make this window invisible
-        self.withdraw()
-        # show error message
-        messagebox.showerror(header, message)
-        # delete this window
-        self.destroy()
 
 
 class SupportedImageFormats(Enum):
@@ -106,6 +81,9 @@ class Settings(dict):
         :return: None or raise an exception.
         """
 
+        # create hotkey object
+        hk = SystemHotkey()
+
         # create dict with all necessary settings keys and their types
         keys = {
             "use_global_save_dir": "bool", "global_save_dir": "str", "use_global_file_format": "bool",
@@ -134,7 +112,8 @@ class Settings(dict):
                     else:
                         raise ValueError
                 except Exception:
-                    raise ValidationError(f"Value of settings parameter '{key}' should have type '{keys[key]}'.")
+                    raise ValidationError(f"Value of settings parameter '{key}' "
+                                          f"should have shape and type '{keys[key]}'.")
 
         # check if "use_global_save_dir" is enabled
         if not self["use_global_save_dir"]:
@@ -156,12 +135,93 @@ class Settings(dict):
             raise ValidationError(f"File format '{self['global_file_format']}' from settings parameter "
                                   f"'global_file_format' isn't supported.")
 
-    def write_settings_file(self, *args, **kwargs) -> None:
+        # check if full_screenshot_hotkey and cropped_screenshot_hotkey have the same value
+        if self["full_screenshot_hotkey"] == self["cropped_screenshot_hotkey"]:
+            raise ValidationError("Hotkeys for Full screenshot and Cropped screenshot cannot be the same.")
+
+        # check if hotkeys for full_screenshot_hotkey and cropped_screenshot_hotkey is supported by system_hotkey
+        try:
+            hk.parse_hotkeylist(self["full_screenshot_hotkey"])
+        except (SystemRegisterError, InvalidKeyError):
+            raise ValidationError(f"Hotkey combination '{self['full_screenshot_hotkey']}' "
+                                  f"for parameter 'full_screenshot_hotkey' is not supported.")
+        try:
+            hk.parse_hotkeylist(self["cropped_screenshot_hotkey"])
+        except (SystemRegisterError, InvalidKeyError):
+            raise ValidationError(f"Hotkey combination '{self['cropped_screenshot_hotkey']}' "
+                                  f"for parameter 'cropped_screenshot_hotkey' is not supported.")
+
+        # code below is my attempt to catch strange exception when been said that hotkey is already be in use,
+        # but in reality it isn't (like when you try to use ["shift", "f12"] as hotkey combination).
+        # the problem with this exception been in impossibility to catch it normally,
+        # because it has been ignored in thread and main script just continuing its execution without noticing.
+
+        # I try different approaches, but I just can't handle it and for now It's still a problem.
+
+        # # function for direct register of keys for bypassing .register(), because this method is run in thread
+        # # and I can't catch exceptions from there
+        # def direct_register(hotkey: collections.Iterable, callback=None, overwrite=True, *args) -> None:
+        #     """Its looks bad, but I can't fild better solution to check is hotkey already in use or not."""
+        #     assert isinstance(hotkey, collections.Iterable) and type(hotkey) not in (str, bytes)
+        #     target_key = hk.order_hotkey(hotkey)
+        #     keycode, masks = hk.parse_hotkeylist(target_key)
+        #     if tuple(hotkey) in hk.keybinds:
+        #         if overwrite:
+        #             hk.unregister(hotkey)
+        #         else:
+        #             msg = 'existing bind detected... unregister or set overwrite to True'
+        #             raise SystemRegisterError(msg, *hotkey)
+        #     if os.name == 'nt':
+        #         def reg():
+        #             uniq = util.unique_int(hk.hk_ref.keys())
+        #             hk.hk_ref[uniq] = (keycode, masks)
+        #             hk._nt_the_grab(keycode, masks, uniq)
+        #         hk.hk_action_queue.put(lambda: reg())
+        #         time.sleep(hk.check_queue_interval * 3)
+        #     else:
+        #         hk._the_grab(keycode, masks)
+        #     if callback:
+        #         hk.keybinds[tuple(target_key)] = callback
+        #     else:
+        #         hk.keybinds[tuple(target_key)] = args
+        #     if hk.verbose:
+        #         print('Printing all keybinds')
+        #         print(hk.keybinds)
+        #     if os.name == 'posix' and hk.use_xlib:
+        #         hk.disp.flush()
+        #
+        #     if not hk.hk_action_queue.empty():
+        #         try:
+        #             exc = hk.hk_action_queue.get(block=False)
+        #             x = exc()
+        #             print(x)
+        #         except Exception as ex:
+        #             raise SystemRegisterError()
+        #     else:
+        #         pass
+        #
+        # # check if hotkeys for full_screenshot_hotkey and cropped_screenshot_hotkey is already in use
+        # try:
+        #     # hk.register(self["full_screenshot_hotkey"], callback=lambda x: 0)
+        #     direct_register(self["full_screenshot_hotkey"], callback=lambda x: 0)
+        #     hk.unregister(self["full_screenshot_hotkey"])
+        # except SystemRegisterError:
+        #     raise ValidationError(f"Hotkey combination '{self['full_screenshot_hotkey']}' "
+        #                           f"for parameter 'full_screenshot_hotkey' is invalid or "
+        #                           f"could be already in use elsewhere.")
+        # try:
+        #     # hk.register(self["cropped_screenshot_hotkey"], callback=lambda x: 0)
+        #     direct_register(self["cropped_screenshot_hotkey"], callback=lambda x: 0)
+        #     hk.unregister(self["cropped_screenshot_hotkey"])
+        # except SystemRegisterError:
+        #     raise ValidationError(f"Hotkey combination '{self['cropped_screenshot_hotkey']}' "
+        #                           f"for parameter 'cropped_screenshot_hotkey' is invalid or "
+        #                           f"could be already in use elsewhere.")
+
+    def write_settings_file(self) -> None:
         """
         Method for writing settings dict to settings json file.
 
-        :param args: args
-        :param kwargs: kwargs
         :return: None
         """
 
@@ -173,12 +233,10 @@ class Settings(dict):
             except Exception:
                 raise Exception("Exception occurred during settings file write")
 
-    def load_settings_file(self, *args, **kwargs) -> None:
+    def load_settings_file(self) -> None:
         """
         Method for loading settings from json settings file and set it values to settings dict.
 
-        :param args: args
-        :param kwargs: kwargs
         :return: None
         """
 

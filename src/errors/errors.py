@@ -1,5 +1,5 @@
 """
-Errors for application backend.
+Errors of application.
 """
 
 
