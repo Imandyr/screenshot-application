@@ -4,7 +4,7 @@ Classes and functions for screenshot creation.
 
 
 # global imports
-from typing import Tuple, Any
+from typing import Tuple, Any, Union
 from abc import ABC, abstractmethod
 import screeninfo
 import os
@@ -43,6 +43,7 @@ class Screenshot(ABC):
     def __init__(self, *args, **kwargs):
         """Placeholder for __init__ method."""
         self._image = None
+        self._image_file_path = None
 
     @property
     def image(self) -> Any:
@@ -51,8 +52,13 @@ class Screenshot(ABC):
 
     @image.setter
     def image(self, img: Any) -> None:
-        """Image setter."""
+        """Set screenshot image."""
         self._image = img
+
+    @property
+    def image_file_path(self) -> Union[str, None]:
+        """File path to last written image."""
+        return self._image_file_path
 
     @abstractmethod
     def __repr__(self, *args, **kwargs):
@@ -116,7 +122,7 @@ class MonitorScreenshot(Screenshot):
             image = Image.frombuffer(data=image.rgb, size=(image.size.width, image.size.height), mode="RGB")
 
         # convert to numpy array and write it as class attribute
-        self.image = np.asarray(image, dtype="float32")
+        self._image = np.asarray(image, dtype="float32")
 
     def edit_screenshot(self, *args, **kwargs):
         """Nothing here for now."""
@@ -150,6 +156,9 @@ class MonitorScreenshot(Screenshot):
                     count += 1
                     c_str = "_" + str(count)
 
+            # save this file path
+            self._image_file_path = file_path
+
         # if error occurred with file format
         except ValueError:
             raise InvalidFileFormat(f"File format '{self.file_format}' is invalid.")
@@ -179,7 +188,7 @@ class CroppedMonitorScreenshot(MonitorScreenshot):
             # crop image by coordinates in box
             image = image.crop(box=box)
             # convert to numpy array and rewrite attribute
-            self.image = np.asarray(image, dtype="float32")
+            self._image = np.asarray(image, dtype="float32")
 
         # if error occurred with image cropping
         except ValueError:

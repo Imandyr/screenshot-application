@@ -1,6 +1,5 @@
 """ Module with various settings related functions and classes """
 
-
 # global imports
 import os
 import json
@@ -87,8 +86,8 @@ class Settings(dict):
         # create dict with all necessary settings keys and their types
         keys = {
             "use_global_save_dir": "bool", "global_save_dir": "str", "use_global_file_format": "bool",
-            "global_file_format": "str", "enable_sound": "bool", "full_screenshot_hotkey": ["str"],
-            "cropped_screenshot_hotkey": ["str"],
+            "global_file_format": "str", "enable_sound": "bool", "clipboard_copy": "bool",
+            "full_screenshot_hotkey": ["str"], "cropped_screenshot_hotkey": ["str"],
         }
 
         # check the presence of necessary settings keys
@@ -134,6 +133,10 @@ class Settings(dict):
         except ValueError:
             raise ValidationError(f"File format '{self['global_file_format']}' from settings parameter "
                                   f"'global_file_format' isn't supported.")
+
+        # check if clipboard_copy is True but os is not windows
+        if self["clipboard_copy"] is True and not os.name == "nt":
+            raise ValidationError("Copying screenshot image to clipboard available only on Windows system.")
 
         # check if full_screenshot_hotkey and cropped_screenshot_hotkey have the same value
         if self["full_screenshot_hotkey"] == self["cropped_screenshot_hotkey"]:
@@ -257,15 +260,3 @@ class Settings(dict):
                 raise InvalidFileFormat("Settings file must be in .json format.")
         else:
             raise FileNotFoundError("Settings file didn't exist or placed in a different directory.")
-
-
-
-
-
-
-
-
-
-
-
-

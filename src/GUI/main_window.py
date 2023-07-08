@@ -9,7 +9,7 @@ import tkinter as tk
 
 # local imports
 from .settings import SettingsWindow
-from .widgets import WidgetScrollbar
+# from .widgets import WidgetScrollbar
 from .screenshot_widgets import FullScreenshotWidget, CroppedScreenshotWidget
 from ..backend.settings import Settings
 from ..errors.errors import InvalidFilePathError

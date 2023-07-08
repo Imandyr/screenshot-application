@@ -19,6 +19,6 @@ if __name__ == "__main__":
     test_run()
 
 
-# pyinstaller compilation:  pyinstaller --onefile ./5.5_screenshot_applcation/main.py --icon ./5.5_screenshot_applcation/src/assets/icon.png
+# pyinstaller compilation:  pyinstaller --onefile ./main.py --icon ./src/assets/icon.png
 
 

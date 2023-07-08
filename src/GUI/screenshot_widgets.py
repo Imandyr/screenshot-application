@@ -1,8 +1,8 @@
 """ All screenshot creation related widgets """
-
-
+import subprocess
 # global imports
-from typing import Tuple
+from pathlib import Path
+from typing import Tuple, Union
 from abc import abstractmethod
 from PIL import Image, ImageTk
 import numpy as np
@@ -19,6 +19,25 @@ from pygame import mixer
 # local imports
 from ..backend import screenshot_creation
 from ..backend.settings import Settings
+
+
+def copy_file_to_clipboard(fp: Union[Path, str]) -> None:
+    """
+    Function for copying file to clipboard.
+    Warning: This function currently working only for Windows.
+
+    :param fp: Path to target file.
+    :return: None.
+    """
+    if os.name == "nt":
+        if isinstance(fp, Path) or isinstance(fp, str):
+            subprocess.run(
+                ["powershell", "-command", rf"Set-Clipboard -Path '{fp}'"],
+                shell=True, stdout=subprocess.PIPE)
+        else:
+            raise ValueError("Path to file must have type 'Path' or 'str'.")
+    else:
+        raise OSError("Function 'copy_file_to_clipboard' only work on Windows system.")
 
 
 class ScreenshotWidget(tk.Frame):
@@ -50,16 +69,37 @@ class ScreenshotWidget(tk.Frame):
                              f" 'use_global_save_dir' == True and 'use_global_file_format' == True.")
 
         # initialize sound mixer
-        self.mixer = mixer
-        self.mixer.init()
-        try:
-            self.sound = self.mixer.Sound("./src/assets/sign.wav")
-        except Exception:
-            raise FileNotFoundError("'sign.wav' file should be in the './src/assets' directory.")
+        if self.settings["enable_sound"]:
+            self.mixer = mixer
+            self.mixer.init()
+            try:
+                self.sound = self.mixer.Sound("./src/assets/sign.wav")
+            except Exception:
+                raise FileNotFoundError("'sign.wav' file should be in the './src/assets' directory.")
+
+        # initialize _copy_image_to_clipboard function
+        if self.settings["clipboard_copy"]:
+            if os.name == "nt":
+                def _copy_image_to_clipboard() -> None:
+                    """ Function for copy last taken screenshot to clipboard. """
+                    subprocess.run(
+                        ["powershell", "-command", rf"Set-Clipboard -Path '{self.backend.image_file_path}'"],
+                        shell=True, stdout=subprocess.PIPE)
+                self._copy_image_to_clipboard = _copy_image_to_clipboard
+            else:
+                raise OSError("Function for copying screenshot image to clipboard works only on Windows system.")
 
     @abstractmethod
     def create_screenshot(self, *args, **kwargs) -> None:
         """ Method for screenshot creation by using Screenshot object. """
+
+        # copy taken screenshot to clipboard if enabled
+        if self.settings["clipboard_copy"]:
+            self._copy_image_to_clipboard()
+
+        # play sound as sign of success if enabled
+        if self.settings["enable_sound"]:
+            self.sound.play()
 
 
 class FullScreenshotWidget(ScreenshotWidget):
@@ -115,10 +155,7 @@ class FullScreenshotWidget(ScreenshotWidget):
         self.backend.image = None
 
         print(f"Full screenshot was taken ({datetime.datetime.now()})")
-
-        # play sound as sign of success if enabled
-        if self.settings["enable_sound"]:
-            self.sound.play()
+        super().create_screenshot()
 
 
 class CroppedScreenshotWidget(ScreenshotWidget):
@@ -186,10 +223,7 @@ class CroppedScreenshotWidget(ScreenshotWidget):
             self.backend.image = None
 
             print(f"Cropped screenshot was taken ({datetime.datetime.now()})")
-
-            # play sound as sign of success if enabled
-            if self.settings["enable_sound"]:
-                self.sound.play()
+            super().create_screenshot()
 
 
 class CroppingWindow(tk.Toplevel):

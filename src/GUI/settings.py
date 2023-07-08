@@ -112,12 +112,19 @@ class SettingsWindow(tk.Toplevel):
         self.cs_hotkey_entry.grid(column=1, row=3)
         self.cs_hotkey_entry.insert(0, str(self.settings["cropped_screenshot_hotkey"])[1:-1])
 
-        # create option for enable of disable all sound from application
+        # create option for enable or disable all sound from application
         self.sound_variable = tk.BooleanVar(value=self.settings["enable_sound"])
         self.sound_label = tk.Label(self.option_container, text="Enable sound: ")
         self.sound_label.grid(column=0, row=4)
         self.sound_checkbutton = tk.Checkbutton(self.option_container, variable=self.sound_variable)
         self.sound_checkbutton.grid(column=1, row=4)
+
+        # create option for enable or disable copying of taken screenshot image to clipboard
+        self.clipboard_variable = tk.BooleanVar(value=self.settings["clipboard_copy"])
+        self.clipboard_label = tk.Label(self.option_container, text="(Only for Windows) Copy screenshot to clipboard: ")
+        self.clipboard_label.grid(column=0, row=5)
+        self.clipboard_checkbutton = tk.Checkbutton(self.option_container, variable=self.clipboard_variable)
+        self.clipboard_checkbutton.grid(column=1, row=5)
 
         # create button for new settings applying
         self.apply_button = tk.Button(self.container, text="Apply settings",
@@ -134,6 +141,7 @@ class SettingsWindow(tk.Toplevel):
         self.settings["global_save_dir"] = self.output_entry.get()
         self.settings["global_file_format"] = self.format_entry.get()
         self.settings["enable_sound"] = self.sound_variable.get()
+        self.settings["clipboard_copy"] = self.clipboard_variable.get()
 
         try:
             # try to convert string hotkey combination to list of strings
